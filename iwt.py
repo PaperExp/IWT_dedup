@@ -13,10 +13,10 @@ def image_to_iwt(image_path):
     approximation, (horizontal, vertical, diagonal) = coeffs
 
     # Convert the approximation and details coefficients to integers
-    approximation = np.round(approximation).astype(int)
-    horizontal = np.round(horizontal).astype(int)
-    vertical = np.round(vertical).astype(int)
-    diagonal = np.round(diagonal).astype(int)
+    approximation = np.round(approximation).astype(np.uint8)
+    horizontal = np.round(horizontal).astype(np.uint8)
+    vertical = np.round(vertical).astype(np.uint8)
+    diagonal = np.round(diagonal).astype(np.uint8)
 
     # Return the coefficients
     return approximation, (horizontal, vertical, diagonal)
