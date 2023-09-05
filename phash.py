@@ -1,15 +1,21 @@
 import numpy as np
 import cv2
 
-def phash(image, hash_size=8):
-    # Convert the image to grayscale
-    gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-
+def phash(image : np.ndarray, hash_size=8):
+    # Convert the array value into [0, 255]
+    image = np.interp(image, (image.min(), image.max()), (0, 255)).astype(np.uint8)
     # Resize the image to the desired hash size + 1x1
-    resized = cv2.resize(gray, (hash_size + 1, hash_size))
+    resized = cv2.resize(image, (32, 32))
 
-    # Compute the horizontal gradient between adjacent pixels
-    diff = resized[:, 1:] > resized[:, :-1]
+    imdct = cv2.dct(np.float32(resized))
+    imdct = imdct[:hash_size, :hash_size]
+    mid = np.median(imdct)
+    diff = imdct > mid
 
-    # Convert the binary array to a hash string
-    return np.packbits(diff.flatten()).tolist()
+    # Convert the diff array to a bitstring and then to an integer
+    bitstring = np.packbits(diff.flatten())
+    hash_int = 0
+    for bit in bitstring:
+        hash_int = (hash_int << 1) | bit
+
+    return hash_int
