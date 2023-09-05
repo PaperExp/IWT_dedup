@@ -9,6 +9,7 @@ Python: version 3.11.5
 1. numpy: version 1.25.2
 2. PyWavelets: version 1.4.1
 3. opencv-python: version 4.8.0.76
+4. pycryptodome: version 3.17
 
 ### Dataset
 1. Bill images dataset.  
