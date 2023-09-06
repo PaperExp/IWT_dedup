@@ -1,6 +1,16 @@
 import numpy as np
 import cv2
 
+# def map_value(x, x_min, x_max, y_min, y_max):
+#     return (x - x_min) / (x_max - x_min) * (y_max - y_min) + y_min
+
+# def map_img(image : np.ndarray):
+#     rt_img = np.zeros(image.shape, dtype=np.uint8)
+#     for i in range(image.shape[0]):
+#         for j in range(image.shape[1]):
+#             rt_img[i, j] = int(map_value(image[i, j], image.min(), image.max(), 0, 255))
+#     return rt_img
+
 def phash(image : np.ndarray, hash_size=8):
     # Convert the array value into [0, 255]
     image = np.interp(image, (image.min(), image.max()), (0, 255)).astype(np.uint8)

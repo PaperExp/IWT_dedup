@@ -2,7 +2,7 @@ from phash import phash
 from iwt import image_to_iwt, iwt_to_image
 from Crypto.Cipher import Salsa20
 
-import cv2
+# import cv2
 import hashlib
 import numpy as np
 import time
@@ -16,16 +16,22 @@ class iwt_dedup:
         self.diff_dic = {}
         # store all messages in files, the key is req_hash, and value is (key, hp, vp, dp)
         self.file_dic = {}
+        # store time
+        self.up_time = 0.0
+        self.down_time = 0.0
+        self.diff_dedup_time = 0.0
 
     def __encrypt(self, base : np.ndarray):
         bbase = base.tobytes()
         hbase = hashlib.sha256(bbase).digest()
         cipher = Salsa20.new(key=hbase)
-        return hbase, cipher.encrypt(bbase)
+        ciper_base = cipher.encrypt(bbase)
+        return hbase, ciper_base, cipher.nonce
     
-    def __decrypt(self, cipher_base : bytes, key : bytes, h : int, w : int):
-        cipher = Salsa20.new(key=key)
-        return np.frombuffer(cipher.decrypt(cipher_base), dtype=np.uint8).reshape((h, w))
+    def __decrypt(self, cipher_base : bytes, key : bytes, nonce : bytes, h : int, w : int):
+        cipher = Salsa20.new(key=key, nonce=nonce)
+        bbase = cipher.decrypt(cipher_base)
+        return np.frombuffer(bbase, dtype=np.int64).reshape((h, w))
 
     def add_to_diff(self, diff : np.ndarray):
         diff_phash = phash(diff)
@@ -42,31 +48,46 @@ class iwt_dedup:
         return diff_phash
 
     def upload(self, image_path):
+        # request upload
+        start_time = time.time()
+
         approximation, (horizontal, vertical, diagonal) = image_to_iwt(image_path)
-        key, cipher_base = self.__encrypt(approximation)
+        key, cipher_base, nonce = self.__encrypt(approximation)
         h, w = approximation.shape
         req_hash = hashlib.sha256(key).hexdigest()
         if req_hash not in self.base_dic:
             self.base_dic[req_hash] = (cipher_base, h, w)
-        
+
+        end_time = time.time()
+        self.up_time += (end_time - start_time)
+
+        # fuzzy deduplication for diff
+        start_time = time.time()
+
         hp = self.add_to_diff(horizontal)
         vp = self.add_to_diff(vertical)
         dp = self.add_to_diff(diagonal)
         if req_hash not in self.file_dic:
-            self.file_dic[req_hash] = (key, hp, vp, dp)
+            self.file_dic[req_hash] = (key, nonce, hp, vp, dp)
+
+        end_time = time.time()
+        self.diff_dedup_time += (end_time - start_time)
 
         return req_hash
 
     def download(self, req_hash):
+        start_time = time.time()
         if req_hash not in self.base_dic:
             return None
         cipher_base, h, w = self.base_dic[req_hash]
-        key, hp, vp, dp = self.file_dic[req_hash]
-        approximation = self.__decrypt(cipher_base, key, h, w)
+        key, nonce, hp, vp, dp = self.file_dic[req_hash]
+        approximation = self.__decrypt(cipher_base, key, nonce, h, w)
         horizontal = self.diff_dic[hp]
         vertical = self.diff_dic[vp]
         diagonal = self.diff_dic[dp]
         img = iwt_to_image(approximation, (horizontal, vertical, diagonal))
+        end_time = time.time()
+        self.down_time += (end_time - start_time)
         # img = cv2.convertScaleAbs(img)
         # cv2.imshow('image', img)
         # cv2.waitKey(0)

@@ -1,5 +1,11 @@
 # dataset directory
 bill/
 
+# security compare files
+cmp_img/
+
+# result directory
+result/
+
 # Mac OS X file
 .DS_store
